@@ -1,0 +1,74 @@
+# editor
+*.swp
+*.swo
+.DS_Store
+# ctags generated file.
+/tags
+# backup files.
+*.bak
+/.devcontainer/
+
+# go
+/plugin_main/plugin_main
+/pluginmanager/checkpoint/
+*.prof
+/plugin_main/checkpoint/*
+*.LOG
+*.LOG.*
+*.test
+plugin_logger.xml
+license_coverage.txt
+vendor
+go.work
+go.work.sum
+
+# C++
+CMakeFiles
+CMakeCache.txt
+*.cmake
+Makefile
+*.cbp
+*.a
+/core/log_pb/*.pb.*
+/core/build/
+/core/common/Version.cpp
+/core/installer/public/
+!/Makefile
+!core/dependencies.cmake
+!core/utils.cmake
+!core/libulogfs.a
+core/unittest/ut.output/
+
+# output
+e2e-test
+/bin/
+/generated_files/
+/build/
+/find_licenses/
+*-test/
+
+# vscode
+.vscode
+!.vscode/settings.json
+!.vscode/launch.json
+output
+dist
+
+# goland
+.idea
+
+# unit test
+.coretestCoverage.txt
+.testCoverage.txt
+plugin_main/*.dll
+plugin_main/*.so
+plugin_main/*.json
+
+# e2e report
+report
+
+# plugins
+plugins/all/
+/external_plugins.yml
+*.go.mod
+*.go.mod.sum
