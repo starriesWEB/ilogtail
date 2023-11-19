@@ -12,6 +12,100 @@ iLogtail was born for observable scenarios and has many production-level feature
 [![Coverage Status](https://codecov.io/gh/alibaba/ilogtail/branch/main/graph/badge.svg)](https://codecov.io/gh/alibaba/ilogtail)
 [![Go Report Card](https://goreportcard.com/badge/github.com/alibaba/ilogtail)](https://goreportcard.com/report/github.com/alibaba/ilogtail)
 
+# change
+
+> fork 分支为 main，日期2023.11.19，大版本 1.8
+>
+> 修改 clickhouse 的 flusher
+> https://github.com/alibaba/ilogtail/issues/1223
+> 原来是传入整个 json 字符串（需要在 ck 中使用 json 函数进行拆分，特殊字符转义 json 解析会报错），现在拆开到对应的字段。
+>
+> **只适用于 docker 及指定配置**	
+
+配置文件
+
+```yaml
+enable: true
+inputs:
+  - Type: service_docker_stdout
+    Stdout: true
+    Stderr: true
+    BeginLineCheckLength: 10
+    BeginLineRegex: \d+-\d+-\d+.*(INFO|ERROR|DEBUG|WARN).*
+    IncludeEnv:
+      JAVA_VERSION: "jdk8u262-b10_openj9-0.21.0"
+processors:
+  - Type: processor_split_log_regex
+    SplitRegex: \d+-\d+-\d+.*
+    SplitKey: content
+    PreserveOthers: true
+  - Type: processor_gotime
+    SourceKey: "_time_"
+    SourceFormat: "2006-01-02T15:04:05.999999999Z07:00"
+    SourceLocation: 8
+    DestKey: "time"
+    DestFormat: "2006-01-02 15:04:05"
+    DestLocation: 8
+  - Type: processor_drop
+    DropKeys:
+      - "_time_"
+      - "_source_"
+      - "_image_name_"
+      - "_container_ip_"
+flushers:
+  - Type: flusher_clickhouse
+    Addresses: ["127.0.0.1:9000"]
+    Authentication:
+      PlainText:
+        Database: default
+        Username: root
+        Password: root
+      TLS:
+        Enabled: false
+    Table: blade
+    #  - Type: flusher_stdout
+    #OnlyStdout: true
+```
+
+plugin 会自动创建 2 个表，还需要手动创建对应的物化表和日志表
+
+```sql
+CREATE TABLE default.blade
+(
+    `logTime`       DATETIME,
+    `hostName`      String,
+    `hostIp`        String,
+    `containerName` String,
+    `content`       String
+)
+    ENGINE = MergeTree PARTITION BY toYYYYMMDD(logTime)
+        PRIMARY KEY logTime
+        ORDER BY (logTime, hostName)
+        SETTINGS index_granularity = 8192;
+
+CREATE MATERIALIZED VIEW default.blade_view
+            TO default.blade
+            (
+             `logTime` DATETIME,
+             `hostName` String,
+             `hostIp` String,
+             `containerName` String,
+             `content` String
+                )
+AS
+SELECT
+    toDateTime(_timestamp) AS logTime,
+    hostName,
+    hostIp,
+    containerName,
+    content
+FROM
+    default.ilogtail_blade;
+
+```
+
+
+
 ## Abstract
 
 The core advantages of **iLogtail**:
